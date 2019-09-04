@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
             mButtonGpio = PeripheralManager.getInstance().openGpio(pinName);
             mButtonGpio.setDirection(Gpio.DIRECTION_IN);
             mButtonGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
+            Log.i(TAG, "set gpio :: BCM21");
             mButtonGpio.registerGpioCallback(new GpioCallback() {
                 @Override
                 public boolean onGpioEdge(Gpio gpio) {
