@@ -2,13 +2,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/imageView_word"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:scaleType="fitXY"
-        android:src="@drawable/aphorisms01" />
+    <techpaliyal.com.curlviewanimation.CurlView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:horizontal_two_page="false"
+        android:id="@+id/curlView"/>
 
 </RelativeLayout>

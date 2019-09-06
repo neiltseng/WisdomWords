@@ -10,6 +10,8 @@ import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManager;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import techpaliyal.com.curlviewanimation.*;
 
 /**
  * Skeleton of an Android Things activity.
@@ -39,9 +41,15 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         gpioControl();//BCM21
+        ArrayList<Integer> arrImages=new ArrayList<Integer>();
+        arrImages.add(R.drawable.aphorisms01);
+        arrImages.add(R.drawable.aphorisms02);
+        arrImages.add(R.drawable.aphorisms03);
         Log.i(TAG, "showing images.");
+        CurlView crulv = (CurlView)findViewById(R.id.curlView);
         //ImageView simpleImageView=(ImageView) findViewById(R.id.imageView_word);
         //simpleImageView.setImageResource(R.drawable.aphorisms01);
+        new CurlActivity(this).load(crulv,arrImages);
     }
 
     private void gpioControl(){
@@ -56,6 +64,7 @@ public class MainActivity extends Activity {
                 public boolean onGpioEdge(Gpio gpio) {
                     Log.i(TAG, "GPIO changed, signal coming");
                     if( mSensorLaunched == Boolean.FALSE){
+
                         Log.i(TAG, "Sensor is launched.");
                     }
                     // Return true to continue listening to events
