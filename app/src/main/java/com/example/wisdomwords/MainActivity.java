@@ -1,6 +1,7 @@
 package com.example.wisdomwords;
 
 import android.app.Activity;
+import android.app.Instrumentation;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -43,6 +44,7 @@ public class MainActivity extends Activity {
     private int pageNumber = 1;
     private int pageTotal = 3;
     Boolean dirFlip = Boolean.TRUE;//go forward
+    long preTime = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,14 +73,16 @@ public class MainActivity extends Activity {
                 public boolean onGpioEdge(Gpio gpio) {
                     Log.i(TAG, "GPIO changed, signal coming");
                     if( mSensorLaunched == Boolean.FALSE){
-                        if(pageNumber == pageTotal){
-                            dirFlip = !dirFlip;
-                            pageNumber = 1;
-                        } else{
-                            pageNumber++;
+                        if((SystemClock.uptimeMillis()-preTime)>2000) {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    flipBook(dirFlip);
+                                    Log.i(TAG, "Sensor is launched and flip::" + pageNumber + "," + dirFlip+","+preTime);
+                                    preTime = SystemClock.uptimeMillis();
+                                }
+                            }).start();
                         }
-                        flipBook(dirFlip);
-                        Log.i(TAG, "Sensor is launched and flip one page."+pageNumber+","+dirFlip);
                     }
                     // Return true to continue listening to events
                     return true;
@@ -94,22 +98,25 @@ public class MainActivity extends Activity {
         // Obtain MotionEvent object
         long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis() + 100;
+        int metaState = 0;
         Display mdisp = getWindowManager().getDefaultDisplay();
         Point mdispSize = new Point();
         mdisp.getSize(mdispSize);
         int maxX = mdispSize.x;
         int maxY = mdispSize.y;
-        float x = 0.0f+maxX;
-        float y = 0.0f+maxY;
+        int flipFactor = 1;
+        float x = 0.0f;
+        float y = 0.0f;
+        Instrumentation mInst = new Instrumentation();
+
         if(direction){
-            x = 0.0f+maxX;
-            y = 0.0f+maxY;
+            x = 0.0f+maxX/flipFactor;
+            y = 0.0f+maxY/flipFactor;
         } else {
             x = 0.0f;
-            y = 0.0f+maxY;
+            y = 0.0f+maxY/flipFactor;
         }
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
-        int metaState = 0;
         MotionEvent motionEventDown = MotionEvent.obtain(
                 downTime,
                 eventTime,
@@ -120,15 +127,18 @@ public class MainActivity extends Activity {
         );
         // Dispatch touch event to view
         clvw.dispatchTouchEvent(motionEventDown);
+        //mInst.sendPointerSync(motionEventDown);
+        Log.i(TAG, "Down,Direction:"+direction + "(x:Y)" + x +":"+y);
         if(direction){
             x = 0.0f;
-            y = 0.0f+maxY/3;
+            y = 0.0f+maxY/flipFactor;
         } else {
             x = 0.0f+maxX;
-            y = 0.0f+maxY/3;
+            y = 0.0f+maxY/flipFactor;
         }
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
         metaState = 0;
+        eventTime = SystemClock.uptimeMillis();
         MotionEvent motionEventMove = MotionEvent.obtain(
                 downTime,
                 eventTime,
@@ -139,15 +149,18 @@ public class MainActivity extends Activity {
         );
         // Dispatch touch event to view
         clvw.dispatchTouchEvent(motionEventMove);
+        //mInst.sendPointerSync(motionEventMove);
+        Log.i(TAG, "Move,Direction:"+direction + "(x:Y)" + x +":"+y);
         if(direction){
             x = 0.0f;
-            y = 0.0f+maxY/3;
+            y = 0.0f+maxY/flipFactor;
         } else {
-            x = 0.0f+maxX;
-            y = 0.0f+maxY/3;
+            x = 0.0f+maxX/flipFactor;
+            y = 0.0f+maxY/flipFactor;
         }
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
         metaState = 0;
+        eventTime = SystemClock.uptimeMillis();
         MotionEvent motionEventUp = MotionEvent.obtain(
                 downTime,
                 eventTime,
@@ -158,5 +171,7 @@ public class MainActivity extends Activity {
         );
         // Dispatch touch event to view
         clvw.dispatchTouchEvent(motionEventUp);
+        //mInst.sendPointerSync(motionEventUp);
+        Log.i(TAG, "Up,Direction:"+direction + "(x:Y)" + x +":"+y);
     }
 }
