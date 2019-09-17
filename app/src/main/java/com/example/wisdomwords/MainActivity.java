@@ -45,6 +45,7 @@ public class MainActivity extends Activity {
     private int pageTotal = 3;
     Boolean dirFlip = Boolean.TRUE;//go forward
     long preTime = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,12 +75,12 @@ public class MainActivity extends Activity {
                     Log.i(TAG, "GPIO changed, signal coming");
                     if( mSensorLaunched == Boolean.FALSE){
                         if((SystemClock.uptimeMillis()-preTime)>2000) {
+                            preTime = SystemClock.uptimeMillis();
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    flipBook(dirFlip);
                                     Log.i(TAG, "Sensor is launched and flip::" + pageNumber + "," + dirFlip+","+preTime);
-                                    preTime = SystemClock.uptimeMillis();
+                                    flipBook(dirFlip);
                                 }
                             }).start();
                         }
@@ -104,17 +105,18 @@ public class MainActivity extends Activity {
         mdisp.getSize(mdispSize);
         int maxX = mdispSize.x;
         int maxY = mdispSize.y;
-        int flipFactor = 1;
+        int steps = 120;
+        float oneStep = 0.0f;
+        int i = 0;
         float x = 0.0f;
         float y = 0.0f;
-        Instrumentation mInst = new Instrumentation();
 
         if(direction){
-            x = 0.0f+maxX/flipFactor;
-            y = 0.0f+maxY/flipFactor;
+            x = 0.0f+maxX;
+            y = 0.0f+maxY;
         } else {
             x = 0.0f;
-            y = 0.0f+maxY/flipFactor;
+            y = 0.0f+maxY;
         }
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
         MotionEvent motionEventDown = MotionEvent.obtain(
@@ -129,34 +131,38 @@ public class MainActivity extends Activity {
         clvw.dispatchTouchEvent(motionEventDown);
         //mInst.sendPointerSync(motionEventDown);
         Log.i(TAG, "Down,Direction:"+direction + "(x:Y)" + x +":"+y);
+
+        oneStep = maxX/steps;
         if(direction){
-            x = 0.0f;
-            y = 0.0f+maxY/flipFactor;
-        } else {
             x = 0.0f+maxX;
-            y = 0.0f+maxY/flipFactor;
+            y = 0.0f+maxY;
+        } else {
+            x = 0.0f;
+            y = 0.0f+maxY;
         }
+        Log.i(TAG, "oneStep:"+oneStep);
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
         metaState = 0;
-        eventTime = SystemClock.uptimeMillis();
-        MotionEvent motionEventMove = MotionEvent.obtain(
-                downTime,
-                eventTime,
-                MotionEvent.ACTION_MOVE,
-                x,
-                y,
-                metaState
-        );
-        // Dispatch touch event to view
-        clvw.dispatchTouchEvent(motionEventMove);
-        //mInst.sendPointerSync(motionEventMove);
-        Log.i(TAG, "Move,Direction:"+direction + "(x:Y)" + x +":"+y);
-        if(direction){
-            x = 0.0f;
-            y = 0.0f+maxY/flipFactor;
-        } else {
-            x = 0.0f+maxX/flipFactor;
-            y = 0.0f+maxY/flipFactor;
+        for(i = 0; i < steps ; i++){
+            eventTime = SystemClock.uptimeMillis();
+            x = x - oneStep;
+            MotionEvent motionEventMove = MotionEvent.obtain(
+                    downTime,
+                    eventTime,
+                    MotionEvent.ACTION_MOVE,
+                    x,
+                    y,
+                    metaState
+            );
+            // Dispatch touch event to view
+            clvw.dispatchTouchEvent(motionEventMove);
+            //mInst.sendPointerSync(motionEventMove);
+            //Log.i(TAG, "Move,Direction:"+direction + "(x:Y)" + x +":"+y);
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Log.d(TAG,"error");
+            }
         }
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
         metaState = 0;
