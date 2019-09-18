@@ -49,17 +49,19 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //setContentView(R.layout.twopages);
         setContentView(R.layout.activity_main);
         gpioControl();//BCM21
         ArrayList<Integer> arrImages=new ArrayList<Integer>();
+        //arrImages.add(R.drawable.aphorisms01_r);
         arrImages.add(R.drawable.aphorisms01);
         arrImages.add(R.drawable.aphorisms02);
         arrImages.add(R.drawable.aphorisms03);
         Log.i(TAG, "showing images.");
-        CurlView crulv = (CurlView)findViewById(R.id.curlView);
+        CurlView crulLeft = (CurlView)findViewById(R.id.curlView);
         //ImageView simpleImageView=(ImageView) findViewById(R.id.imageView_word);
         //simpleImageView.setImageResource(R.drawable.aphorisms01);
-        new CurlActivity(this).load(crulv,arrImages);
+        new CurlActivity(this).load(crulLeft,arrImages);
     }
 
     private void gpioControl(){
@@ -105,15 +107,18 @@ public class MainActivity extends Activity {
         mdisp.getSize(mdispSize);
         int maxX = mdispSize.x;
         int maxY = mdispSize.y;
-        int steps = 120;
-        float oneStep = 0.0f;
+        int steps = 60;
+        float oneStepX = 0.0f;
+        float oneStepY = 0.0f;
         int i = 0;
+        float factX = (float)0.7;
+        float factY = (float)0.5;
         float x = 0.0f;
         float y = 0.0f;
 
         if(direction){
-            x = 0.0f+maxX;
-            y = 0.0f+maxY;
+            x = maxX;
+            y = maxY;
         } else {
             x = 0.0f;
             y = 0.0f+maxY;
@@ -132,20 +137,23 @@ public class MainActivity extends Activity {
         //mInst.sendPointerSync(motionEventDown);
         Log.i(TAG, "Down,Direction:"+direction + "(x:Y)" + x +":"+y);
 
-        oneStep = maxX/steps;
+        oneStepX = maxX*factX/steps;
+        oneStepY = maxX*factY/steps;
+
         if(direction){
-            x = 0.0f+maxX;
-            y = 0.0f+maxY;
+            x = maxX;
+            y = maxY;
         } else {
             x = 0.0f;
             y = 0.0f+maxY;
         }
-        Log.i(TAG, "oneStep:"+oneStep);
+        Log.i(TAG, "oneStep::(x,y)="+oneStepX+","+oneStepY);
 // List of meta states found here:     developer.android.com/reference/android/view/KeyEvent.html#getMetaState()
         metaState = 0;
         for(i = 0; i < steps ; i++){
             eventTime = SystemClock.uptimeMillis();
-            x = x - oneStep;
+            x = x - oneStepX;
+            y = y - oneStepY;
             MotionEvent motionEventMove = MotionEvent.obtain(
                     downTime,
                     eventTime,

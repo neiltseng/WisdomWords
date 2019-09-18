@@ -4,11 +4,10 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity">
-
     <techpaliyal.com.curlviewanimation.CurlView
+        android:id="@+id/curlView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:horizontal_two_page="false"
-        android:id="@+id/curlView"/>
 
+        app:horizontal_two_page="true" />
 </RelativeLayout>
