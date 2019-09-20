@@ -3,12 +3,17 @@ package com.example.wisdomwords;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.graphics.Point;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.widget.ImageView;
+import android.widget.MediaController;
+import android.widget.VideoView;
 
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
@@ -45,23 +50,45 @@ public class MainActivity extends Activity {
     private int pageTotal = 3;
     Boolean dirFlip = Boolean.TRUE;//go forward
     long preTime = 0;
+    ImageView imageLeft;
+    CurlView curlRightView;
+    int currIdx;
+    private static final String VIDEO_SAMPLE_01 = "video_01.mp4";
+    private VideoView mVideoView;
+    // Current playback position (in milliseconds).
+    private int mCurrentPosition = 0;
+    Boolean mVideoPlaying = Boolean.FALSE;
+    private Handler handler=null;
+    private ImageView bookCoverImg;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.twopages);
-        setContentView(R.layout.activity_main);
-        gpioControl();//BCM21
+        //setContentView(R.layout.activity_main);
+        setContentView(R.layout.animation);
+
+        handler=new Handler();
+
+        imageLeft = (ImageView) findViewById(R.id.imageView1);
+
         ArrayList<Integer> arrImages=new ArrayList<Integer>();
-        //arrImages.add(R.drawable.aphorisms01_r);
-        arrImages.add(R.drawable.aphorisms01);
-        arrImages.add(R.drawable.aphorisms02);
-        arrImages.add(R.drawable.aphorisms03);
-        Log.i(TAG, "showing images.");
-        CurlView crulLeft = (CurlView)findViewById(R.id.curlView);
+        arrImages.add(R.drawable.aphorisms01_r);
+        //arrImages.add(R.drawable.aphorisms01);
+        arrImages.add(R.drawable.aphorisms02_r);
+        arrImages.add(R.drawable.aphorisms03_r);
+        //Log.i(TAG, "showing images.");
+        //curlRightView = (CurlView)findViewById(R.id.curlView);
+        //mVideoView = (VideoView)findViewById(R.id.videoView01);
+        bookCoverImg = (ImageView)findViewById(R.id.imageView01_v2);
+        // Set up the media controller widget and attach it to the video view.
+        //MediaController controller = new MediaController(this);
+        //controller.setMediaPlayer(mVideoView);
+        //mVideoView.setMediaController(null);
+        gpioControl();//BCM21
         //ImageView simpleImageView=(ImageView) findViewById(R.id.imageView_word);
         //simpleImageView.setImageResource(R.drawable.aphorisms01);
-        new CurlActivity(this).load(crulLeft,arrImages);
+        //new CurlActivity(this).load(curlRightView,arrImages);
     }
 
     private void gpioControl(){
@@ -82,11 +109,19 @@ public class MainActivity extends Activity {
                                 @Override
                                 public void run() {
                                     Log.i(TAG, "Sensor is launched and flip::" + pageNumber + "," + dirFlip+","+preTime);
-                                    flipBook(dirFlip);
+                                    //flipBook(dirFlip);
+                                    if(mVideoPlaying == Boolean.FALSE){
+                                        mVideoPlaying = Boolean.TRUE;
+                                        //can't play video here ,
+                                        // would cause Only the original thread that created a view hierarchy can touch its views
+                                        //initializePlayer();
+                                        handler.post(playFlippingVideo);
+                                    }
                                 }
                             }).start();
                         }
                     }
+                    //showLeftImg();
                     // Return true to continue listening to events
                     return true;
                 }
@@ -94,6 +129,84 @@ public class MainActivity extends Activity {
         } catch (IOException e) {
             Log.e(TAG, "Error on PeripheralIO API", e);
         }
+    }
+
+    Runnable   playFlippingVideo=new  Runnable(){
+        @Override
+        public void run() {
+            initializePlayer();
+        }
+    };
+
+    private void showLeftImg() {
+        currIdx = curlRightView.getCurrentIndex() + 2;
+        String leftImgStr = "aphorisms0"+currIdx+"_"+"l";
+        int identifier = getResources().getIdentifier(leftImgStr, "drawable","com.example.wisdomwords");
+        ImageView image = (ImageView) findViewById(R.id.imageView1);
+        image.setImageResource(identifier);
+        Log.i(TAG, "currIdx:"+currIdx+",leftImgStr="+leftImgStr);
+    }
+
+    private void initializePlayer() {
+        // Show the "Buffering..." message while the video loads.
+        bookCoverImg.setVisibility(VideoView.INVISIBLE);
+        setContentView(R.layout.fullscreen);
+        mVideoView = (VideoView)findViewById(R.id.videoView01);
+        MediaController controller = new MediaController(this);
+        controller.setMediaPlayer(mVideoView);
+        mVideoView.setMediaController(null);
+        // Buffer and decode the video sample.
+        Uri videoUri = getMedia(VIDEO_SAMPLE_01);
+
+        Log.i(TAG, "video Uri = "+videoUri);
+        mVideoView.setVideoURI(videoUri);
+
+        // Listener for onPrepared() event (runs after the media is prepared).
+        mVideoView.setOnPreparedListener(
+                new MediaPlayer.OnPreparedListener() {
+                    @Override
+                    public void onPrepared(MediaPlayer mediaPlayer) {
+
+                        // Hide buffering message.
+                        //mBufferingTextView.setVisibility(VideoView.INVISIBLE);
+
+                        // Restore saved position, if available.
+                        if (mCurrentPosition > 0) {
+                            mVideoView.seekTo(mCurrentPosition);
+                        } else {
+                            // Skipping to 1 shows the first frame of the video.
+                            mVideoView.seekTo(1);
+                        }
+
+                        // Start playing!
+                        Log.i(TAG, "start to play flipping video");
+                        mVideoView.start();
+                    }
+                });
+
+        // Listener for onCompletion() event (runs after media has finished
+        // playing).
+        mVideoView.setOnCompletionListener(
+                new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mediaPlayer) {
+                        //Toast.makeText(MainActivity.this,                                R.string.toast_message,                                Toast.LENGTH_SHORT).show();
+                        // Return the video position to the start.
+                        mVideoView.seekTo(0);
+                        //initializePlayer(Boolean.FALSE);
+                        Log.i(TAG, "regular video is playing , again.");
+                    }
+                });
+    }
+
+    // Get a Uri for the media sample regardless of whether that sample is
+    // embedded in the app resources or available on the internet.
+    private Uri getMedia(String mediaName) {
+        String fileName = null;
+        if(mediaName == VIDEO_SAMPLE_01) {
+            fileName = "android.resource://" + getPackageName() + "/" + R.raw.video_01;
+        }
+        return Uri.parse(fileName);
     }
 
     private void flipBook(boolean direction){
@@ -105,14 +218,14 @@ public class MainActivity extends Activity {
         Display mdisp = getWindowManager().getDefaultDisplay();
         Point mdispSize = new Point();
         mdisp.getSize(mdispSize);
-        int maxX = mdispSize.x;
-        int maxY = mdispSize.y;
+        int maxX = mdispSize.x-10;
+        int maxY = mdispSize.y-10;
         int steps = 60;
         float oneStepX = 0.0f;
         float oneStepY = 0.0f;
         int i = 0;
-        float factX = (float)0.7;
-        float factY = (float)0.5;
+        float factX = (float)1.0;
+        float factY = (float)1.0;
         float x = 0.0f;
         float y = 0.0f;
 
@@ -167,7 +280,7 @@ public class MainActivity extends Activity {
             //mInst.sendPointerSync(motionEventMove);
             //Log.i(TAG, "Move,Direction:"+direction + "(x:Y)" + x +":"+y);
             try {
-                Thread.sleep(50);
+                Thread.sleep(25);
             } catch (InterruptedException e) {
                 Log.d(TAG,"error");
             }
