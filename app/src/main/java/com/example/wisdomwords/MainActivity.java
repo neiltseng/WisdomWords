@@ -66,21 +66,21 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.twopages);
         //setContentView(R.layout.activity_main);
-        setContentView(R.layout.animation);
-
+        //setContentView(R.layout.animation);
+        backToMainMenu();
         handler=new Handler();
 
-        imageLeft = (ImageView) findViewById(R.id.imageView1);
+        //imageLeft = (ImageView) findViewById(R.id.imageView1);
 
-        ArrayList<Integer> arrImages=new ArrayList<Integer>();
-        arrImages.add(R.drawable.aphorisms01_r);
+        //ArrayList<Integer> arrImages=new ArrayList<Integer>();
+        //arrImages.add(R.drawable.aphorisms01_r);
         //arrImages.add(R.drawable.aphorisms01);
-        arrImages.add(R.drawable.aphorisms02_r);
-        arrImages.add(R.drawable.aphorisms03_r);
+        //arrImages.add(R.drawable.aphorisms02_r);
+        //arrImages.add(R.drawable.aphorisms03_r);
         //Log.i(TAG, "showing images.");
         //curlRightView = (CurlView)findViewById(R.id.curlView);
         //mVideoView = (VideoView)findViewById(R.id.videoView01);
-        bookCoverImg = (ImageView)findViewById(R.id.imageView01_v2);
+        //bookCoverImg = (ImageView)findViewById(R.id.imageView01_v2);
         // Set up the media controller widget and attach it to the video view.
         //MediaController controller = new MediaController(this);
         //controller.setMediaPlayer(mVideoView);
@@ -88,6 +88,7 @@ public class MainActivity extends Activity {
         gpioControl();//BCM21
         //ImageView simpleImageView=(ImageView) findViewById(R.id.imageView_word);
         //simpleImageView.setImageResource(R.drawable.aphorisms01);
+        //bookCoverImg.setImageResource(R.drawable.cover);
         //new CurlActivity(this).load(curlRightView,arrImages);
     }
 
@@ -147,6 +148,12 @@ public class MainActivity extends Activity {
         Log.i(TAG, "currIdx:"+currIdx+",leftImgStr="+leftImgStr);
     }
 
+    private void backToMainMenu(){
+        setContentView(R.layout.animation);
+        bookCoverImg = (ImageView)findViewById(R.id.imageView01_v2);
+        bookCoverImg.setImageResource(R.drawable.cover);
+    }
+
     private void initializePlayer() {
         // Show the "Buffering..." message while the video loads.
         bookCoverImg.setVisibility(VideoView.INVISIBLE);
@@ -194,7 +201,9 @@ public class MainActivity extends Activity {
                         // Return the video position to the start.
                         mVideoView.seekTo(0);
                         //initializePlayer(Boolean.FALSE);
-                        Log.i(TAG, "regular video is playing , again.");
+                        mVideoPlaying = Boolean.FALSE;
+                        backToMainMenu();
+                        Log.i(TAG, "Waiting for next playing.");
                     }
                 });
     }

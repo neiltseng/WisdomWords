@@ -3,16 +3,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <VideoView
-        android:id="@+id/videoView01"
-        android:layout_width="fill_parent"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_height="fill_parent">
-    </VideoView>
-
     <ImageView
         android:id="@+id/imageView01_v2"
         android:layout_width="match_parent"
