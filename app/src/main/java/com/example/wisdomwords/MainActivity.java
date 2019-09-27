@@ -11,6 +11,9 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.MediaController;
 import android.widget.VideoView;
@@ -21,6 +24,8 @@ import com.google.android.things.pio.PeripheralManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
+
 import techpaliyal.com.curlviewanimation.*;
 
 /**
@@ -59,8 +64,8 @@ public class MainActivity extends Activity {
     private int mCurrentPosition = 0;
     Boolean mVideoPlaying = Boolean.FALSE;
     private Handler handler=null;
-    private ImageView bookCoverImg;
-
+    private ImageView bookCoverImg,aphorism;
+    private int iIsAphorismAnimShowed = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +95,24 @@ public class MainActivity extends Activity {
         //simpleImageView.setImageResource(R.drawable.aphorisms01);
         //bookCoverImg.setImageResource(R.drawable.cover);
         //new CurlActivity(this).load(curlRightView,arrImages);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(Boolean.TRUE){
+                    Log.i(TAG, "detect event of showing aphorism");
+                    //flipBook(dirFlip);
+                    if(iIsAphorismAnimShowed == 0){
+                        handler.post(playAphorismAnim);
+                        iIsAphorismAnimShowed = 1;
+                    }
+                    try {
+                        Thread.sleep( 3000 );
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
     private void gpioControl(){
@@ -139,6 +162,83 @@ public class MainActivity extends Activity {
         }
     };
 
+    Runnable   playAphorismAnim=new  Runnable(){
+        @Override
+        public void run() {
+            showAphorisms();
+        }
+    };
+
+    private void showAphorisms(){
+        final int identifier;
+        String aphorismImgStr = getAphorismImg();
+        //setContentView(R.layout.animation);
+        final Animation am = AnimationUtils.loadAnimation(this, R.anim.anim);
+        aphorism = (ImageView)findViewById(R.id.imageView_aphorism);
+        aphorism.setVisibility(VideoView.VISIBLE);
+        identifier = getResources().getIdentifier(aphorismImgStr, "drawable","com.example.wisdomwords");
+        Log.i(TAG, "show aphorismImgStr:"+aphorismImgStr);
+        aphorism.setImageResource(identifier);
+        //if(iIsAphorismAnimShowed == 0){
+        Log.i(TAG, "start aphorism animation");
+        aphorism.setAnimation(am);
+        am.startNow();
+        am.setAnimationListener(new Animation.AnimationListener(){
+            @Override
+            public void onAnimationStart(Animation arg0) {
+            }
+            @Override
+            public void onAnimationRepeat(Animation arg0) {
+            }
+            @Override
+            public void onAnimationEnd(Animation arg0) {
+                //aphorism.setVisibility(View.INVISIBLE);
+                aphorism.clearAnimation();
+                am.cancel();
+                am.reset();
+                aphorism.setImageResource(identifier);//backToMainMenu();
+                Log.i(TAG, "[N]back to main image.");
+            }
+        });
+
+        /*aphorism.animate().withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                Log.i(TAG, "aphorism animation end.");
+                //aphorism.setVisibility(View.GONE);
+
+                try {
+                    Thread.sleep( 3000 );
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                aphorism.clearAnimation();
+                am.cancel();
+                am.reset();
+                backToMainMenu();
+                Log.i(TAG, "back to main image.");
+            }
+        });    //iIsAphorismAnimShowed = 1;
+        //}*/
+        Log.i(TAG, "aphorism image showed.");
+    }
+
+    private String getAphorismImg(){
+        int min = 1;
+        int max = 3;
+
+        Random r = new Random();
+        int i1 = r.nextInt(max - min + 1) + min;
+        String rtnImgStr = null;
+        if(i1<10){
+            rtnImgStr = "aphorisms_0"+i1;
+        }else{
+            rtnImgStr = "aphorisms_"+i1;
+        }
+
+        return rtnImgStr;
+    }
+
     private void showLeftImg() {
         currIdx = curlRightView.getCurrentIndex() + 2;
         String leftImgStr = "aphorisms0"+currIdx+"_"+"l";
@@ -184,7 +284,6 @@ public class MainActivity extends Activity {
                             // Skipping to 1 shows the first frame of the video.
                             mVideoView.seekTo(1);
                         }
-
                         // Start playing!
                         Log.i(TAG, "start to play flipping video");
                         mVideoView.start();
@@ -199,10 +298,10 @@ public class MainActivity extends Activity {
                     public void onCompletion(MediaPlayer mediaPlayer) {
                         //Toast.makeText(MainActivity.this,                                R.string.toast_message,                                Toast.LENGTH_SHORT).show();
                         // Return the video position to the start.
-                        mVideoView.seekTo(0);
+                        mVideoView.seekTo(mVideoView.getDuration());
                         //initializePlayer(Boolean.FALSE);
+                        iIsAphorismAnimShowed = 0;
                         mVideoPlaying = Boolean.FALSE;
-                        backToMainMenu();
                         Log.i(TAG, "Waiting for next playing.");
                     }
                 });

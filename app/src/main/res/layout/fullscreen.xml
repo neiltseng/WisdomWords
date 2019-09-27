@@ -12,4 +12,18 @@
         android:layout_height="fill_parent">
     </VideoView>
 
+    <ImageView
+        android:id="@+id/imageView_aphorism"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="invisible" />
+
+    <ImageView
+        android:id="@+id/imageView_aphorism_anim_done"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="invisible" />
+
 </RelativeLayout>
