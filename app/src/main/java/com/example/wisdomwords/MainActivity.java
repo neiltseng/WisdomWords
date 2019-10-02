@@ -66,13 +66,17 @@ public class MainActivity extends Activity {
     private Handler handler=null;
     private ImageView bookCoverImg,aphorism;
     private int iIsAphorismAnimShowed = 1;
+    private int countToShow = 0;
+    int identifier;
+    String aphorismImgStr;
+    Animation am;// = AnimationUtils.loadAnimation(this, R.anim.anim);
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.twopages);
         //setContentView(R.layout.activity_main);
         //setContentView(R.layout.animation);
-        backToMainMenu();
+        setMainMenu();
         handler=new Handler();
 
         //imageLeft = (ImageView) findViewById(R.id.imageView1);
@@ -99,20 +103,36 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 while(Boolean.TRUE){
-                    Log.i(TAG, "detect event of showing aphorism");
+                    //Log.i(TAG, "detect event of showing aphorism");
                     //flipBook(dirFlip);
                     if(iIsAphorismAnimShowed == 0){
-                        handler.post(playAphorismAnim);
-                        iIsAphorismAnimShowed = 1;
+                        countToShow++;
+                        if(countToShow >= 3){
+                            handler.post(playAphorismAnim);
+                            iIsAphorismAnimShowed = 1;
+                            countToShow = 0;
+                        }else{
+                            Log.i(TAG, "ready to show aphorism"+countToShow);
+                        }
                     }
                     try {
-                        Thread.sleep( 3000 );
+                        Thread.sleep( 1000 );
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             }
         }).start();
+    }
+
+    private void setMainMenu(){
+        setContentView(R.layout.fullscreen);
+        bookCoverImg = (ImageView)findViewById(R.id.imageView_aphorism);
+        bookCoverImg.setImageResource(R.drawable.cover);
+        bookCoverImg.setVisibility(View.VISIBLE);
+        //am = AnimationUtils.loadAnimation(this, R.anim.anim);
+        //aphorism = (ImageView)findViewById(R.id.imageView01_v2);
+        //aphorism.setAnimation(am);
     }
 
     private void gpioControl(){
@@ -162,6 +182,69 @@ public class MainActivity extends Activity {
         }
     };
 
+    private void showLeftImg() {
+        currIdx = curlRightView.getCurrentIndex() + 2;
+        String leftImgStr = "aphorisms0"+currIdx+"_"+"l";
+        int identifier = getResources().getIdentifier(leftImgStr, "drawable","com.example.wisdomwords");
+        ImageView image = (ImageView) findViewById(R.id.imageView1);
+        image.setImageResource(identifier);
+        Log.i(TAG, "currIdx:"+currIdx+",leftImgStr="+leftImgStr);
+    }
+
+    private void initializePlayer() {
+        // Show the "Buffering..." message while the video loads.
+        bookCoverImg.setVisibility(VideoView.INVISIBLE);
+        //setContentView(R.layout.fullscreen);
+        mVideoView = (VideoView)findViewById(R.id.videoView01);
+        MediaController controller = new MediaController(this);
+        controller.setMediaPlayer(mVideoView);
+        mVideoView.setMediaController(null);
+        // Buffer and decode the video sample.
+        Uri videoUri = getMedia(VIDEO_SAMPLE_01);
+
+        Log.i(TAG, "video Uri = "+videoUri);
+        mVideoView.setVideoURI(videoUri);
+
+        // Listener for onPrepared() event (runs after the media is prepared).
+        mVideoView.setOnPreparedListener(
+                new MediaPlayer.OnPreparedListener() {
+                    @Override
+                    public void onPrepared(MediaPlayer mediaPlayer) {
+
+                        // Hide buffering message.
+                        //mBufferingTextView.setVisibility(VideoView.INVISIBLE);
+
+                        // Restore saved position, if available.
+                        if (mCurrentPosition > 0) {
+                            mVideoView.seekTo(mCurrentPosition);
+                        } else {
+                            // Skipping to 1 shows the first frame of the video.
+                            mVideoView.seekTo(1);
+                        }
+                        // Start playing!
+                        Log.i(TAG, "start to play flipping video and start to count to show!!");
+                        mVideoView.start();
+                    }
+                });
+
+        // Listener for onCompletion() event (runs after media has finished
+        // playing).
+        mVideoView.setOnCompletionListener(
+                new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mediaPlayer) {
+                        //Toast.makeText(MainActivity.this,                                R.string.toast_message,                                Toast.LENGTH_SHORT).show();
+                        // Return the video position to the start.
+                        //mVideoView.seekTo(mVideoView.getDuration());
+                        //initializePlayer(Boolean.FALSE);
+                        mVideoPlaying = Boolean.FALSE;
+                        iIsAphorismAnimShowed = 0;
+                        handler.post(playAphorismAnim);
+                        Log.i(TAG, "Waiting for next playing.");
+                    }
+                });
+    }
+
     Runnable   playAphorismAnim=new  Runnable(){
         @Override
         public void run() {
@@ -170,19 +253,20 @@ public class MainActivity extends Activity {
     };
 
     private void showAphorisms(){
-        final int identifier;
-        String aphorismImgStr = getAphorismImg();
-        //setContentView(R.layout.animation);
-        final Animation am = AnimationUtils.loadAnimation(this, R.anim.anim);
-        aphorism = (ImageView)findViewById(R.id.imageView_aphorism);
-        aphorism.setVisibility(VideoView.VISIBLE);
-        identifier = getResources().getIdentifier(aphorismImgStr, "drawable","com.example.wisdomwords");
+
         Log.i(TAG, "show aphorismImgStr:"+aphorismImgStr);
+        aphorism = (ImageView)findViewById(R.id.imageView_aphorism_anim_done);
+        aphorismImgStr = getAphorismImg();
+        identifier = getResources().getIdentifier(aphorismImgStr, "drawable","com.example.wisdomwords");
+        identifier=R.drawable.aphorisms_01;
         aphorism.setImageResource(identifier);
-        //if(iIsAphorismAnimShowed == 0){
+        aphorism.setVisibility(VideoView.VISIBLE);
+        am = AnimationUtils.loadAnimation(this, R.anim.anim);
+
         Log.i(TAG, "start aphorism animation");
-        aphorism.setAnimation(am);
+
         am.startNow();
+
         am.setAnimationListener(new Animation.AnimationListener(){
             @Override
             public void onAnimationStart(Animation arg0) {
@@ -196,7 +280,9 @@ public class MainActivity extends Activity {
                 aphorism.clearAnimation();
                 am.cancel();
                 am.reset();
-                aphorism.setImageResource(identifier);//backToMainMenu();
+                //aphorism.setImageResource(identifier);//backToMainMenu();
+                aphorism.setVisibility(VideoView.INVISIBLE);
+                setMainMenu();
                 Log.i(TAG, "[N]back to main image.");
             }
         });
@@ -239,80 +325,12 @@ public class MainActivity extends Activity {
         return rtnImgStr;
     }
 
-    private void showLeftImg() {
-        currIdx = curlRightView.getCurrentIndex() + 2;
-        String leftImgStr = "aphorisms0"+currIdx+"_"+"l";
-        int identifier = getResources().getIdentifier(leftImgStr, "drawable","com.example.wisdomwords");
-        ImageView image = (ImageView) findViewById(R.id.imageView1);
-        image.setImageResource(identifier);
-        Log.i(TAG, "currIdx:"+currIdx+",leftImgStr="+leftImgStr);
-    }
-
-    private void backToMainMenu(){
-        setContentView(R.layout.animation);
-        bookCoverImg = (ImageView)findViewById(R.id.imageView01_v2);
-        bookCoverImg.setImageResource(R.drawable.cover);
-    }
-
-    private void initializePlayer() {
-        // Show the "Buffering..." message while the video loads.
-        bookCoverImg.setVisibility(VideoView.INVISIBLE);
-        setContentView(R.layout.fullscreen);
-        mVideoView = (VideoView)findViewById(R.id.videoView01);
-        MediaController controller = new MediaController(this);
-        controller.setMediaPlayer(mVideoView);
-        mVideoView.setMediaController(null);
-        // Buffer and decode the video sample.
-        Uri videoUri = getMedia(VIDEO_SAMPLE_01);
-
-        Log.i(TAG, "video Uri = "+videoUri);
-        mVideoView.setVideoURI(videoUri);
-
-        // Listener for onPrepared() event (runs after the media is prepared).
-        mVideoView.setOnPreparedListener(
-                new MediaPlayer.OnPreparedListener() {
-                    @Override
-                    public void onPrepared(MediaPlayer mediaPlayer) {
-
-                        // Hide buffering message.
-                        //mBufferingTextView.setVisibility(VideoView.INVISIBLE);
-
-                        // Restore saved position, if available.
-                        if (mCurrentPosition > 0) {
-                            mVideoView.seekTo(mCurrentPosition);
-                        } else {
-                            // Skipping to 1 shows the first frame of the video.
-                            mVideoView.seekTo(1);
-                        }
-                        // Start playing!
-                        Log.i(TAG, "start to play flipping video");
-                        mVideoView.start();
-                    }
-                });
-
-        // Listener for onCompletion() event (runs after media has finished
-        // playing).
-        mVideoView.setOnCompletionListener(
-                new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mediaPlayer) {
-                        //Toast.makeText(MainActivity.this,                                R.string.toast_message,                                Toast.LENGTH_SHORT).show();
-                        // Return the video position to the start.
-                        mVideoView.seekTo(mVideoView.getDuration());
-                        //initializePlayer(Boolean.FALSE);
-                        iIsAphorismAnimShowed = 0;
-                        mVideoPlaying = Boolean.FALSE;
-                        Log.i(TAG, "Waiting for next playing.");
-                    }
-                });
-    }
-
     // Get a Uri for the media sample regardless of whether that sample is
     // embedded in the app resources or available on the internet.
     private Uri getMedia(String mediaName) {
         String fileName = null;
         if(mediaName == VIDEO_SAMPLE_01) {
-            fileName = "android.resource://" + getPackageName() + "/" + R.raw.video_01;
+            fileName = "android.resource://" + getPackageName() + "/" + R.raw.video;
         }
         return Uri.parse(fileName);
     }
