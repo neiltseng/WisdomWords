@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
     int identifier;
     String aphorismImgStr;
     private int countToMainMenu = 0;
+    private int countToAphorism = 0;
     private int showMainMenuBySensor = 0;
     Animation am;// = AnimationUtils.loadAnimation(this, R.anim.anim);
     @Override
@@ -102,13 +103,24 @@ public class MainActivity extends Activity {
                         Log.i(TAG, "countToMainMenu::"+countToMainMenu);
                         countToMainMenu++;
                     }
-                    if(countToMainMenu == 60){//ready to back main menu which means to go to screen saver.
+
+                    if(countToMainMenu >= 60){//ready to back main menu which means to go to screen saver.
                         showMainMenuBySensor = 0;
                         handler.post(handleShowMainMenu);
                         countToMainMenu = 0;
                         iIsAphorismAnimShowed = 0;
                     }
-                    //handler.post(playAphorismAnim);
+                    if(mVideoPlaying == Boolean.TRUE){
+                        countToAphorism++;
+                    }
+
+                    if(countToAphorism >= 6){
+                        Log.i(TAG, "Ready to send Aphorisms");
+                        iIsAphorismAnimShowed = 0;
+                        handler.post(playAphorismAnim);
+                        countToAphorism = 0;
+                    }
+
                     try {
                         Thread.sleep( 1000 );
                     } catch (InterruptedException e) {
@@ -163,6 +175,7 @@ public class MainActivity extends Activity {
                                         //can't play video here ,
                                         // would cause Only the original thread that created a view hierarchy can touch its views
                                         showMainMenuBySensor = 1;
+                                        countToAphorism= 0;
                                         handler.post(handleShowMainMenu);
                                         handler.post(playFlippingVideo);//use a handle post to play video
                                     }
@@ -241,10 +254,10 @@ public class MainActivity extends Activity {
                         // Return the video position to the start.
                         //mVideoView.seekTo(mVideoView.getDuration());
                         //initializePlayer(Boolean.FALSE);
-                        iIsAphorismAnimShowed = 0;
+                        //iIsAphorismAnimShowed = 0;
                         mVideoPlaying = Boolean.FALSE;
                         //mVideoView.setVisibility(VideoView.INVISIBLE);
-                        handler.post(playAphorismAnim);
+                        //handler.post(playAphorismAnim);
                         Log.i(TAG, "Send playing aphorism and Waiting for next playing.");
                     }
                 });
@@ -257,6 +270,8 @@ public class MainActivity extends Activity {
                 Log.i(TAG, "Runnable::showAphorisms.");
                 showAphorisms();
                 iIsAphorismAnimShowed = 1;
+            }else{
+                Log.i(TAG, "Error::doesn't catch up Aphorisms handle!!");
             }
         }
     };
