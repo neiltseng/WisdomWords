@@ -267,7 +267,7 @@ public class MainActivity extends Activity {
         aphorismImgStr = getAphorismImg();
         identifier = getResources().getIdentifier(aphorismImgStr, "drawable","com.example.wisdomwords");
         Log.i(TAG, "show aphorismImgStr:"+aphorismImgStr+",identifier:"+identifier);
-        identifier=R.drawable.aphorisms_01;
+        //identifier=R.drawable.aphorisms_01;
         aphorism.setImageResource(identifier);
         aphorism.setVisibility(VideoView.VISIBLE);
         Log.i(TAG, "start aphorism animation");
