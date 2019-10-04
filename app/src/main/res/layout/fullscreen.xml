@@ -3,27 +3,27 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent" >
 
-    <VideoView android:id="@+id/videoView01"
-        android:layout_width="fill_parent"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_height="fill_parent">
-    </VideoView>
+        <VideoView android:id="@+id/videoView01"
+            android:layout_width="fill_parent"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentBottom="true"
+            android:layout_height="fill_parent">
+        </VideoView>
 
-    <ImageView
-        android:id="@+id/imageView_aphorism"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:visibility="invisible" />
+        <ImageView
+            android:id="@+id/imageView_aphorism"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:visibility="invisible" />
 
-    <ImageView
-        android:id="@+id/imageView_aphorism_anim_done"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:visibility="invisible" />
+        <ImageView
+            android:id="@+id/imageView_aphorism_anim_done"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:visibility="invisible" />
 
 </RelativeLayout>

@@ -65,56 +65,50 @@ public class MainActivity extends Activity {
     Boolean mVideoPlaying = Boolean.FALSE;
     private Handler handler=null;
     private ImageView bookCoverImg,aphorism;
-    private int iIsAphorismAnimShowed = 1;
-    private int countToShow = 0;
+    private int iIsAphorismAnimShowed = 0;
     int identifier;
     String aphorismImgStr;
+    private int countToMainMenu = 0;
+    private int showMainMenuBySensor = 0;
     Animation am;// = AnimationUtils.loadAnimation(this, R.anim.anim);
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.twopages);
-        //setContentView(R.layout.activity_main);
-        //setContentView(R.layout.animation);
+
         setMainMenu();
         handler=new Handler();
-
-        //imageLeft = (ImageView) findViewById(R.id.imageView1);
 
         //ArrayList<Integer> arrImages=new ArrayList<Integer>();
         //arrImages.add(R.drawable.aphorisms01_r);
         //arrImages.add(R.drawable.aphorisms01);
         //arrImages.add(R.drawable.aphorisms02_r);
         //arrImages.add(R.drawable.aphorisms03_r);
-        //Log.i(TAG, "showing images.");
         //curlRightView = (CurlView)findViewById(R.id.curlView);
+        //new CurlActivity(this).load(curlRightView,arrImages);
+        //Log.i(TAG, "showing images.");
         //mVideoView = (VideoView)findViewById(R.id.videoView01);
-        //bookCoverImg = (ImageView)findViewById(R.id.imageView01_v2);
         // Set up the media controller widget and attach it to the video view.
         //MediaController controller = new MediaController(this);
         //controller.setMediaPlayer(mVideoView);
         //mVideoView.setMediaController(null);
         gpioControl();//BCM21
-        //ImageView simpleImageView=(ImageView) findViewById(R.id.imageView_word);
-        //simpleImageView.setImageResource(R.drawable.aphorisms01);
-        //bookCoverImg.setImageResource(R.drawable.cover);
-        //new CurlActivity(this).load(curlRightView,arrImages);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(Boolean.TRUE){
                     //Log.i(TAG, "detect event of showing aphorism");
-                    //flipBook(dirFlip);
-                    if(iIsAphorismAnimShowed == 0){
-                        countToShow++;
-                        if(countToShow >= 3){
-                            handler.post(playAphorismAnim);
-                            iIsAphorismAnimShowed = 1;
-                            countToShow = 0;
-                        }else{
-                            Log.i(TAG, "ready to show aphorism"+countToShow);
-                        }
+                    if(iIsAphorismAnimShowed == 1){
+                        Log.i(TAG, "countToMainMenu::"+countToMainMenu);
+                        countToMainMenu++;
                     }
+                    if(countToMainMenu == 60){//ready to back main menu which means to go to screen saver.
+                        showMainMenuBySensor = 0;
+                        handler.post(handleShowMainMenu);
+                        countToMainMenu = 0;
+                        iIsAphorismAnimShowed = 0;
+                    }
+                    //handler.post(playAphorismAnim);
                     try {
                         Thread.sleep( 1000 );
                     } catch (InterruptedException e) {
@@ -125,14 +119,25 @@ public class MainActivity extends Activity {
         }).start();
     }
 
+    Runnable   handleShowMainMenu=new  Runnable(){
+        @Override
+        public void run() {
+            setMainMenu();
+        }
+    };
+
     private void setMainMenu(){
         setContentView(R.layout.fullscreen);
+        aphorism = (ImageView)findViewById(R.id.imageView_aphorism_anim_done);
         bookCoverImg = (ImageView)findViewById(R.id.imageView_aphorism);
+        mVideoView = (VideoView)findViewById(R.id.videoView01);
         bookCoverImg.setImageResource(R.drawable.cover);
-        bookCoverImg.setVisibility(View.VISIBLE);
-        //am = AnimationUtils.loadAnimation(this, R.anim.anim);
-        //aphorism = (ImageView)findViewById(R.id.imageView01_v2);
-        //aphorism.setAnimation(am);
+        if(showMainMenuBySensor == 1){
+            Log.i(TAG, "skip to show MainMenu because of coming from sensor");
+            bookCoverImg.setVisibility(View.INVISIBLE);
+        }else{
+            bookCoverImg.setVisibility(View.VISIBLE);
+        }
     }
 
     private void gpioControl(){
@@ -153,20 +158,18 @@ public class MainActivity extends Activity {
                                 @Override
                                 public void run() {
                                     Log.i(TAG, "Sensor is launched and flip::" + pageNumber + "," + dirFlip+","+preTime);
-                                    //flipBook(dirFlip);
                                     if(mVideoPlaying == Boolean.FALSE){
                                         mVideoPlaying = Boolean.TRUE;
                                         //can't play video here ,
                                         // would cause Only the original thread that created a view hierarchy can touch its views
-                                        //initializePlayer();
-                                        handler.post(playFlippingVideo);
+                                        showMainMenuBySensor = 1;
+                                        handler.post(handleShowMainMenu);
+                                        handler.post(playFlippingVideo);//use a handle post to play video
                                     }
                                 }
                             }).start();
                         }
                     }
-                    //showLeftImg();
-                    // Return true to continue listening to events
                     return true;
                 }
             });
@@ -192,17 +195,15 @@ public class MainActivity extends Activity {
     }
 
     private void initializePlayer() {
+
         // Show the "Buffering..." message while the video loads.
-        bookCoverImg.setVisibility(VideoView.INVISIBLE);
-        //setContentView(R.layout.fullscreen);
-        mVideoView = (VideoView)findViewById(R.id.videoView01);
         MediaController controller = new MediaController(this);
         controller.setMediaPlayer(mVideoView);
         mVideoView.setMediaController(null);
         // Buffer and decode the video sample.
         Uri videoUri = getMedia(VIDEO_SAMPLE_01);
 
-        Log.i(TAG, "video Uri = "+videoUri);
+        Log.i(TAG, "start to play video Uri = "+videoUri);
         mVideoView.setVideoURI(videoUri);
 
         // Listener for onPrepared() event (runs after the media is prepared).
@@ -213,7 +214,10 @@ public class MainActivity extends Activity {
 
                         // Hide buffering message.
                         //mBufferingTextView.setVisibility(VideoView.INVISIBLE);
-
+                        // Hide book cover
+                        bookCoverImg.setVisibility(View.INVISIBLE);
+                        aphorism.setVisibility(View.INVISIBLE);
+                        mVideoView.setVisibility(VideoView.VISIBLE);
                         // Restore saved position, if available.
                         if (mCurrentPosition > 0) {
                             mVideoView.seekTo(mCurrentPosition);
@@ -237,10 +241,11 @@ public class MainActivity extends Activity {
                         // Return the video position to the start.
                         //mVideoView.seekTo(mVideoView.getDuration());
                         //initializePlayer(Boolean.FALSE);
-                        mVideoPlaying = Boolean.FALSE;
                         iIsAphorismAnimShowed = 0;
+                        mVideoPlaying = Boolean.FALSE;
+                        //mVideoView.setVisibility(VideoView.INVISIBLE);
                         handler.post(playAphorismAnim);
-                        Log.i(TAG, "Waiting for next playing.");
+                        Log.i(TAG, "Send playing aphorism and Waiting for next playing.");
                     }
                 });
     }
@@ -248,28 +253,29 @@ public class MainActivity extends Activity {
     Runnable   playAphorismAnim=new  Runnable(){
         @Override
         public void run() {
-            showAphorisms();
+            if(iIsAphorismAnimShowed == 0){
+                Log.i(TAG, "Runnable::showAphorisms.");
+                showAphorisms();
+                iIsAphorismAnimShowed = 1;
+            }
         }
     };
 
     private void showAphorisms(){
 
-        Log.i(TAG, "show aphorismImgStr:"+aphorismImgStr);
-        aphorism = (ImageView)findViewById(R.id.imageView_aphorism_anim_done);
+        am = AnimationUtils.loadAnimation(this, R.anim.anim);
         aphorismImgStr = getAphorismImg();
         identifier = getResources().getIdentifier(aphorismImgStr, "drawable","com.example.wisdomwords");
+        Log.i(TAG, "show aphorismImgStr:"+aphorismImgStr+",identifier:"+identifier);
         identifier=R.drawable.aphorisms_01;
         aphorism.setImageResource(identifier);
         aphorism.setVisibility(VideoView.VISIBLE);
-        am = AnimationUtils.loadAnimation(this, R.anim.anim);
-
         Log.i(TAG, "start aphorism animation");
-
-        am.startNow();
-
+        aphorism.startAnimation(am);
         am.setAnimationListener(new Animation.AnimationListener(){
             @Override
             public void onAnimationStart(Animation arg0) {
+
             }
             @Override
             public void onAnimationRepeat(Animation arg0) {
@@ -277,36 +283,15 @@ public class MainActivity extends Activity {
             @Override
             public void onAnimationEnd(Animation arg0) {
                 //aphorism.setVisibility(View.INVISIBLE);
-                aphorism.clearAnimation();
-                am.cancel();
-                am.reset();
+                //aphorism.setVisibility(VideoView.INVISIBLE);
+                countToMainMenu = 0;
+                Log.i(TAG, "aphorism animation done, countToMainMenu="+countToMainMenu);
+                //aphorism.clearAnimation();
+                //am.cancel();
+                //am.reset();
                 //aphorism.setImageResource(identifier);//backToMainMenu();
-                aphorism.setVisibility(VideoView.INVISIBLE);
-                setMainMenu();
-                Log.i(TAG, "[N]back to main image.");
             }
         });
-
-        /*aphorism.animate().withEndAction(new Runnable() {
-            @Override
-            public void run() {
-                Log.i(TAG, "aphorism animation end.");
-                //aphorism.setVisibility(View.GONE);
-
-                try {
-                    Thread.sleep( 3000 );
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                aphorism.clearAnimation();
-                am.cancel();
-                am.reset();
-                backToMainMenu();
-                Log.i(TAG, "back to main image.");
-            }
-        });    //iIsAphorismAnimShowed = 1;
-        //}*/
-        Log.i(TAG, "aphorism image showed.");
     }
 
     private String getAphorismImg(){
