@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
                         countToMainMenu++;
                     }
 
-                    if(countToMainMenu >= 60){//ready to back main menu which means to go to screen saver.
+                    if(countToMainMenu >= 180){//ready to back main menu which means to go to screen saver.
                         showMainMenuBySensor = 0;
                         handler.post(handleShowMainMenu);
                         countToMainMenu = 0;
@@ -311,12 +311,14 @@ public class MainActivity extends Activity {
 
     private String getAphorismImg(){
         int min = 1;
-        int max = 3;
+        int max = 100;
 
         Random r = new Random();
         int i1 = r.nextInt(max - min + 1) + min;
         String rtnImgStr = null;
         if(i1<10){
+            rtnImgStr = "aphorisms_00"+i1;
+        }else if(i1>=10 && i1 < 100){
             rtnImgStr = "aphorisms_0"+i1;
         }else{
             rtnImgStr = "aphorisms_"+i1;
