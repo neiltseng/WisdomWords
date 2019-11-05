@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
@@ -21,6 +22,8 @@ import android.widget.VideoView;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManager;
+import com.google.android.things.contrib.driver.button.Button;
+import com.google.android.things.contrib.driver.button.ButtonInputDriver;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,6 +53,7 @@ import techpaliyal.com.curlviewanimation.*;
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private Gpio mButtonGpio;
+    private Gpio mSensorGpio;
     private Boolean mSensorLaunched = Boolean.FALSE;
     private int pageNumber = 1;
     private int pageTotal = 3;
@@ -71,6 +75,10 @@ public class MainActivity extends Activity {
     private int countToMainMenu = 0;
     private int countToAphorism = 0;
     private int showMainMenuBySensor = 0;
+    private int secondsToMainMenu = 10*60;
+    private int msToIgnoreSensor = 10*1000;
+    private ButtonInputDriver mButtonInputDriver;
+
     Animation am;// = AnimationUtils.loadAnimation(this, R.anim.anim);
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +101,7 @@ public class MainActivity extends Activity {
         //controller.setMediaPlayer(mVideoView);
         //mVideoView.setMediaController(null);
         gpioControl();//BCM21
+        buttonControl();//BCM20
 
         new Thread(new Runnable() {
             @Override
@@ -104,7 +113,7 @@ public class MainActivity extends Activity {
                         countToMainMenu++;
                     }
 
-                    if(countToMainMenu >= 180){//ready to back main menu which means to go to screen saver.
+                    if(countToMainMenu >= secondsToMainMenu){//ready to back main menu which means to go to screen saver.
                         showMainMenuBySensor = 0;
                         handler.post(handleShowMainMenu);
                         countToMainMenu = 0;
@@ -119,6 +128,7 @@ public class MainActivity extends Activity {
                         iIsAphorismAnimShowed = 0;
                         handler.post(playAphorismAnim);
                         countToAphorism = 0;
+                        mVideoPlaying = Boolean.FALSE;
                     }
 
                     try {
@@ -155,16 +165,16 @@ public class MainActivity extends Activity {
     private void gpioControl(){
         try {
             String pinName = "BCM21";//vibrator 1
-            mButtonGpio = PeripheralManager.getInstance().openGpio(pinName);
-            mButtonGpio.setDirection(Gpio.DIRECTION_IN);
-            mButtonGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
+            mSensorGpio = PeripheralManager.getInstance().openGpio(pinName);
+            mSensorGpio.setDirection(Gpio.DIRECTION_IN);
+            mSensorGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
             Log.i(TAG, "set gpio :: BCM21");
-            mButtonGpio.registerGpioCallback(new GpioCallback() {
+            mSensorGpio.registerGpioCallback(new GpioCallback() {
                 @Override
                 public boolean onGpioEdge(Gpio gpio) {
                     Log.i(TAG, "GPIO changed, signal coming");
                     if( mSensorLaunched == Boolean.FALSE){
-                        if((SystemClock.uptimeMillis()-preTime)>2000) {
+                        if((SystemClock.uptimeMillis()-preTime)> msToIgnoreSensor) {
                             preTime = SystemClock.uptimeMillis();
                             new Thread(new Runnable() {
                                 @Override
@@ -182,6 +192,36 @@ public class MainActivity extends Activity {
                                 }
                             }).start();
                         }
+                    }
+                    return true;
+                }
+            });
+        } catch (IOException e) {
+            Log.e(TAG, "Error on PeripheralIO API", e);
+        }
+    }
+
+    private void buttonControl(){
+        try {
+            String buttonPinName = "BCM20";//vibrator 1
+            mButtonGpio = PeripheralManager.getInstance().openGpio(buttonPinName);
+            mButtonGpio.setDirection(Gpio.DIRECTION_IN);
+            mButtonGpio.setEdgeTriggerType(Gpio.EDGE_BOTH);
+            Log.i(TAG, "set gpio :: BCM20");
+            mButtonGpio.setActiveType(Gpio.ACTIVE_HIGH);
+            mButtonGpio.registerGpioCallback(new GpioCallback() {
+                @Override
+                public boolean onGpioEdge(Gpio gpio) {
+                    try {
+                        Log.i(TAG, "button pressed."+ gpio.getValue());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if(mVideoPlaying == Boolean.FALSE){
+                        showMainMenuBySensor = 0;
+                        handler.post(handleShowMainMenu);
+                        countToMainMenu = 0;
+                        iIsAphorismAnimShowed = 0;
                     }
                     return true;
                 }
