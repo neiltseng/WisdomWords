@@ -62,11 +62,13 @@ public class MainActivity extends Activity {
     ImageView imageLeft;
     CurlView curlRightView;
     int currIdx;
-    private static final String VIDEO_SAMPLE_01 = "video_01.mp4";
+    private static final String VIDEO_SAMPLE_01 = "open_book";
+    private static final String VIDEO_SAMPLE_02 = "close_book";
     private VideoView mVideoView;
     // Current playback position (in milliseconds).
     private int mCurrentPosition = 0;
-    Boolean mVideoPlaying = Boolean.FALSE;
+    Boolean mOpeningVideoPlaying = Boolean.FALSE;
+    Boolean isPlayingClosingVideo = Boolean.FALSE;
     private Handler handler=null;
     private ImageView bookCoverImg,aphorism;
     private int iIsAphorismAnimShowed = 0;
@@ -75,7 +77,9 @@ public class MainActivity extends Activity {
     private int countToMainMenu = 0;
     private int countToAphorism = 0;
     private int showMainMenuBySensor = 0;
-    private int secondsToMainMenu = 10*60;
+    private int secondsToMainMenu = 1*60;//10*60;
+    private int secondsToAphorism = 6;
+    private int secondsToAllowButtonIn = 12;//10*60;
     private int msToIgnoreSensor = 10*1000;
     private ButtonInputDriver mButtonInputDriver;
 
@@ -84,51 +88,58 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setMainMenu();
-        handler=new Handler();
+        handler = new Handler();
 
-        //ArrayList<Integer> arrImages=new ArrayList<Integer>();
-        //arrImages.add(R.drawable.aphorisms01_r);
-        //arrImages.add(R.drawable.aphorisms01);
-        //arrImages.add(R.drawable.aphorisms02_r);
-        //arrImages.add(R.drawable.aphorisms03_r);
-        //curlRightView = (CurlView)findViewById(R.id.curlView);
-        //new CurlActivity(this).load(curlRightView,arrImages);
-        //Log.i(TAG, "showing images.");
-        //mVideoView = (VideoView)findViewById(R.id.videoView01);
-        // Set up the media controller widget and attach it to the video view.
-        //MediaController controller = new MediaController(this);
-        //controller.setMediaPlayer(mVideoView);
-        //mVideoView.setMediaController(null);
-        gpioControl();//BCM21
-        buttonControl();//BCM20
+        setMainMenu();
 
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(Boolean.TRUE){
                     //Log.i(TAG, "detect event of showing aphorism");
+
+                    if(mOpeningVideoPlaying == Boolean.TRUE){
+                        Log.i(TAG, "counting to show aphorism, countToAphorism = " + countToAphorism);
+                        countToAphorism++;
+                    }
+
+                    if(countToAphorism == secondsToAphorism){
+                        Log.i(TAG, "handler post :: playAphorismAnim");
+                        iIsAphorismAnimShowed = 0;
+                        handler.post(playAphorismAnim);
+                        countToAphorism = secondsToAphorism + 1;
+                        //mVideoPlaying = Boolean.FALSE;
+                    }
+
+                    if(countToAphorism > secondsToAphorism){
+                        countToAphorism = secondsToAphorism + 1;
+                    }
+
                     if(iIsAphorismAnimShowed == 1){
                         Log.i(TAG, "countToMainMenu::"+countToMainMenu);
                         countToMainMenu++;
                     }
 
-                    if(countToMainMenu >= secondsToMainMenu){//ready to back main menu which means to go to screen saver.
-                        showMainMenuBySensor = 0;
-                        handler.post(handleShowMainMenu);
-                        countToMainMenu = 0;
-                        iIsAphorismAnimShowed = 0;
-                    }
-                    if(mVideoPlaying == Boolean.TRUE){
-                        countToAphorism++;
+                    if(countToMainMenu == (secondsToMainMenu-21)) {//ready to back main menu which means to go to screen saver.
+                        Log.i(TAG, "handler post :: playClosingVideo,countToMainMenu::"+countToMainMenu);
+                        //handler.post(playClosingVideo);//use a handle post to play closing video
+                        //isPlayingClosingVideo = Boolean.TRUE;
                     }
 
-                    if(countToAphorism >= 6){
-                        Log.i(TAG, "Ready to send Aphorisms");
-                        iIsAphorismAnimShowed = 0;
-                        handler.post(playAphorismAnim);
-                        countToAphorism = 0;
-                        mVideoPlaying = Boolean.FALSE;
+                    if(countToMainMenu == (secondsToMainMenu-15)) {//ready to back main menu which means to go to screen saver.
+                        Log.i(TAG, "handler post :: closeAphorism,countToMainMenu::"+countToMainMenu);
+                        handler.post(closeAphorism);//use a handle post to play closing video
+                    }
+
+                    if(countToMainMenu == secondsToMainMenu){//ready to back main menu which means to go to screen saver.
+                        Log.i(TAG, "handler post :: handleShowMainMenu,countToMainMenu::"+countToMainMenu);
+                        showMainMenuBySensor = 0;
+                        handler.post(handleShowMainMenu);
+                        countToMainMenu = secondsToMainMenu + 1;
+                    }
+
+                    if(countToMainMenu > secondsToMainMenu){
+                        countToMainMenu = secondsToMainMenu + 1;
                     }
 
                     try {
@@ -139,9 +150,12 @@ public class MainActivity extends Activity {
                 }
             }
         }).start();
+
+        gpioControl();//BCM21
+        buttonControl();//BCM20
     }
 
-    Runnable   handleShowMainMenu=new  Runnable(){
+    Runnable   handleShowMainMenu = new  Runnable(){
         @Override
         public void run() {
             setMainMenu();
@@ -150,6 +164,7 @@ public class MainActivity extends Activity {
 
     private void setMainMenu(){
         setContentView(R.layout.fullscreen);
+        iIsAphorismAnimShowed = 0;//to forbid button input
         aphorism = (ImageView)findViewById(R.id.imageView_aphorism_anim_done);
         bookCoverImg = (ImageView)findViewById(R.id.imageView_aphorism);
         mVideoView = (VideoView)findViewById(R.id.videoView01);
@@ -160,6 +175,7 @@ public class MainActivity extends Activity {
         }else{
             bookCoverImg.setVisibility(View.VISIBLE);
         }
+
     }
 
     private void gpioControl(){
@@ -179,15 +195,15 @@ public class MainActivity extends Activity {
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Log.i(TAG, "Sensor is launched and flip::" + pageNumber + "," + dirFlip+","+preTime);
-                                    if(mVideoPlaying == Boolean.FALSE){
-                                        mVideoPlaying = Boolean.TRUE;
+                                    mOpeningVideoPlaying = Boolean.FALSE;
+                                    Log.i(TAG, "mOpeningVideoPlaying = " + mOpeningVideoPlaying + ",countToAphorism = " + countToAphorism+",countToMainMenu = "+countToMainMenu);
+                                    if(mOpeningVideoPlaying == Boolean.FALSE ){
                                         //can't play video here ,
                                         // would cause Only the original thread that created a view hierarchy can touch its views
                                         showMainMenuBySensor = 1;
-                                        countToAphorism= 0;
-                                        handler.post(handleShowMainMenu);
+                                        handler.post(handleShowMainMenu);//just restore context view and not show main menu
                                         handler.post(playFlippingVideo);//use a handle post to play video
+                                        mOpeningVideoPlaying = Boolean.TRUE;
                                     }
                                 }
                             }).start();
@@ -217,11 +233,10 @@ public class MainActivity extends Activity {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if(mVideoPlaying == Boolean.FALSE){
+                    if(iIsAphorismAnimShowed == 1){
+                        Log.i(TAG, "handler post :: handleShowMainMenu by button");
                         showMainMenuBySensor = 0;
                         handler.post(handleShowMainMenu);
-                        countToMainMenu = 0;
-                        iIsAphorismAnimShowed = 0;
                     }
                     return true;
                 }
@@ -235,6 +250,21 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             initializePlayer();
+        }
+    };
+
+    Runnable   closeAphorism = new  Runnable(){
+        @Override
+        public void run() {
+            hideAphorisms();//aphorism.setVisibility(View.INVISIBLE);
+        }
+    };
+
+    Runnable   playClosingVideo = new  Runnable(){
+        @Override
+        public void run() {
+            //countToMainMenu = 0;
+            closePlayer();
         }
     };
 
@@ -279,6 +309,52 @@ public class MainActivity extends Activity {
                             mVideoView.seekTo(1);
                         }
                         // Start playing!
+                        Log.i(TAG, "onPrepared::playing flipping video. set countToAphorism = " + countToAphorism);
+                        mVideoView.start();
+                        countToAphorism = 0;
+                    }
+                });
+
+        // Listener for onCompletion() event (runs after media has finished
+        // playing).
+        mVideoView.setOnCompletionListener(
+                new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mediaPlayer) {
+                        Log.i(TAG, "onCompletion::playing flipping video.");
+                    }
+                });
+    }
+
+    private void closePlayer() {
+        // Show the "Buffering..." message while the video loads.
+        MediaController controller = new MediaController(this);
+        controller.setMediaPlayer(mVideoView);
+        mVideoView.setMediaController(null);
+        // Buffer and decode the video sample.
+        Uri videoUri = getMedia(VIDEO_SAMPLE_02);
+
+        Log.i(TAG, "start to play closing video Uri = "+videoUri);
+        mVideoView.setVideoURI(videoUri);
+
+        // Listener for onPrepared() event (runs after the media is prepared).
+        mVideoView.setOnPreparedListener(
+                new MediaPlayer.OnPreparedListener() {
+                    @Override
+                    public void onPrepared(MediaPlayer mediaPlayer) {
+
+                        // Hide buffering message.
+                        //mBufferingTextView.setVisibility(VideoView.INVISIBLE);
+                        //aphorism.setVisibility(View.INVISIBLE);
+                        mVideoView.setVisibility(VideoView.VISIBLE);
+                        // Restore saved position, if available.
+                        if (mCurrentPosition > 0) {
+                            mVideoView.seekTo(mCurrentPosition);
+                        } else {
+                            // Skipping to 1 shows the first frame of the video.
+                            mVideoView.seekTo(1);
+                        }
+                        // Start playing!
                         Log.i(TAG, "start to play flipping video and start to count to show!!");
                         mVideoView.start();
                     }
@@ -294,22 +370,21 @@ public class MainActivity extends Activity {
                         // Return the video position to the start.
                         //mVideoView.seekTo(mVideoView.getDuration());
                         //initializePlayer(Boolean.FALSE);
-                        //iIsAphorismAnimShowed = 0;
-                        mVideoPlaying = Boolean.FALSE;
+                        //mVideoPlaying = Boolean.FALSE;
+                        isPlayingClosingVideo = Boolean.FALSE;
                         //mVideoView.setVisibility(VideoView.INVISIBLE);
                         //handler.post(playAphorismAnim);
-                        Log.i(TAG, "Send playing aphorism and Waiting for next playing.");
+                        Log.i(TAG, "closing book done.");
                     }
                 });
     }
 
-    Runnable   playAphorismAnim=new  Runnable(){
+    Runnable   playAphorismAnim = new Runnable(){
         @Override
         public void run() {
             if(iIsAphorismAnimShowed == 0){
                 Log.i(TAG, "Runnable::showAphorisms.");
                 showAphorisms();
-                iIsAphorismAnimShowed = 1;
             }else{
                 Log.i(TAG, "Error::doesn't catch up Aphorisms handle!!");
             }
@@ -340,7 +415,35 @@ public class MainActivity extends Activity {
                 //aphorism.setVisibility(View.INVISIBLE);
                 //aphorism.setVisibility(VideoView.INVISIBLE);
                 countToMainMenu = 0;
-                Log.i(TAG, "aphorism animation done, countToMainMenu="+countToMainMenu);
+                iIsAphorismAnimShowed = 1;
+                Log.i(TAG, "aphorism animation done and reset countToMainMenu = " + countToMainMenu);
+                //aphorism.clearAnimation();
+                //am.cancel();
+                //am.reset();
+                //aphorism.setImageResource(identifier);//backToMainMenu();
+            }
+        });
+    }
+
+    private void hideAphorisms(){
+        am = AnimationUtils.loadAnimation(this, R.anim.anim_hide);
+        Log.i(TAG, "hide aphorism animation");
+        aphorism.startAnimation(am);
+        am.setAnimationListener(new Animation.AnimationListener(){
+            @Override
+            public void onAnimationStart(Animation arg0) {
+
+            }
+            @Override
+            public void onAnimationRepeat(Animation arg0) {
+            }
+            @Override
+            public void onAnimationEnd(Animation arg0) {
+                //aphorism.setVisibility(View.INVISIBLE);
+                //aphorism.setVisibility(VideoView.INVISIBLE);
+                //countToMainMenu = 0;
+                aphorism.setVisibility(VideoView.INVISIBLE);
+                Log.i(TAG, "hiding aphorism animation done");
                 //aphorism.clearAnimation();
                 //am.cancel();
                 //am.reset();
@@ -373,6 +476,8 @@ public class MainActivity extends Activity {
         String fileName = null;
         if(mediaName == VIDEO_SAMPLE_01) {
             fileName = "android.resource://" + getPackageName() + "/" + R.raw.video;
+        }else if(mediaName == VIDEO_SAMPLE_02) {
+            fileName = "android.resource://" + getPackageName() + "/" + R.raw.close_book;
         }
         return Uri.parse(fileName);
     }
