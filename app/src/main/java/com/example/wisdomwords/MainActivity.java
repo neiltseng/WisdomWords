@@ -79,8 +79,9 @@ public class MainActivity extends Activity {
     private int showMainMenuBySensor = 0;
     private int secondsToMainMenu = 10*60;
     private int secondsToAphorism = 6;
-    private int secondsToHideAphorism = 6;
-    private int secondsToAllowButtonIn = 12;//10*60;
+    private int secondsToHideAphorism = 15;//45;
+    private int secondsToPlayClosingVideo = 20;//40;
+    //private int secondsToAllowButtonIn = 12;//10*60;
     private int msToIgnoreSensor = 10*1000;
     private ButtonInputDriver mButtonInputDriver;
 
@@ -121,9 +122,9 @@ public class MainActivity extends Activity {
                         countToMainMenu++;
                     }
 
-                    if(countToMainMenu == (secondsToMainMenu-21)) {//ready to back main menu which means to go to screen saver.
+                    if(countToMainMenu == (secondsToMainMenu - secondsToPlayClosingVideo)) {//ready to back main menu which means to go to screen saver.
                         Log.i(TAG, "handler post :: playClosingVideo,countToMainMenu::"+countToMainMenu);
-                        //handler.post(playClosingVideo);//use a handle post to play closing video
+                        handler.post(playClosingVideo);//use a handle post to play closing video
                         //isPlayingClosingVideo = Boolean.TRUE;
                     }
 
